@@ -23,7 +23,7 @@ Deep learning pipeline for industrial surface defect detection using TensorFlow 
 
 ---
 
-## ⚙Installation
+## Installation
 
 Clone this repository:
 
