@@ -29,12 +29,12 @@ def load_dagm_metadata(class_path, split="Train"):
     metadata = []
     try:
         with open(label_path, 'r') as f:
-            lines = f.readlines()[1:]  # Skip header
+            lines = f.readlines()[1:]  
             for line in lines:
                 line = line.strip()
-                if not line:  # Skip empty lines
+                if not line: 
                     continue
-                parts = line.split('\t')  # Use tab delimiter
+                parts = line.split('\t')  
                 if len(parts) < 3:
                     logger.warning(f"Skipping invalid line in {label_path}: {line}")
                     continue
