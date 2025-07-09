@@ -1,5 +1,3 @@
-#Working
-
 import os
 import pandas as pd
 import numpy as np
@@ -14,23 +12,18 @@ from tensorflow.keras.metrics import Precision, Recall
 import logging
 import cv2
 import matplotlib.pyplot as plt
-
-# Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 logger = logging.getLogger()
 
-# Configuration
 DAGM_BASE_PATH = "/Users/siddharth/Documents/EdgeVision/Main/datasets/DAGMdatasetzip/DAGM_KaggleUpload"
 MVTEC_BASE_PATH = "/Users/siddharth/Documents/EdgeVision/Main/datasets/MVTecDatasetZip"
 DAGM_CLASSES = [f"Class{i}" for i in range(1, 7)]
 BATCH_SIZE = 32
 TARGET_SIZE = (224, 224)
 
-# Global metric instances
 precision_metric = Precision(name='precision')
 recall_metric = Recall(name='recall')
 
-# Dataset loading functions
 def load_dagm_metadata(class_path, split="Train"):
     label_path = os.path.join(class_path, split, "Label", "Labels.txt")
     metadata = []
@@ -135,15 +128,12 @@ def load_combined_dataset():
     logger.info(f"Validation DataFrame size: {len(val_df)}")
     return train_df, val_df
 
-# Load dataset
 train_df, val_df = load_combined_dataset()
 logger.info(f"Training samples: {len(train_df)}, Validation samples: {len(val_df)}")
 
-# Preload images
 train_images, train_labels, train_df_sampled = load_and_preprocess_images(train_df, max_samples=5000)
 val_images, val_labels, val_df_sampled = load_and_preprocess_images(val_df, max_samples=2000)
 
-# Aggressive oversampling (3x Defective samples with augmentation)
 def oversample_defective(images, labels):
     defective_idx = np.where(labels == 1)[0]
     extra_images = []
@@ -160,7 +150,6 @@ def oversample_defective(images, labels):
 
 train_images, train_labels = oversample_defective(train_images, train_labels)
 
-# Focal loss with higher alpha_defective
 def focal_loss(y_true, y_pred, gamma=2.0, alpha_defective=0.95):
     y_true = tf.cast(y_true, tf.float32)
     y_pred = tf.clip_by_value(y_pred, 1e-7, 1 - 1e-7)
@@ -170,7 +159,6 @@ def focal_loss(y_true, y_pred, gamma=2.0, alpha_defective=0.95):
     alpha = y_true * alpha_defective + (1 - y_true) * (1 - alpha_defective)
     return tf.reduce_mean(focal_factor * alpha * bce)
 
-# F1-score metric
 def f1_score(y_true, y_pred):
     y_true = tf.cast(y_true, tf.float32)
     precision_metric.reset_state()
@@ -181,7 +169,6 @@ def f1_score(y_true, y_pred):
     r = recall_metric.result()
     return 2 * (p * r) / (p + r + tf.keras.backend.epsilon())
 
-# LR schedule
 def cosine_decay_with_warmup(epoch, initial_lr, total_epochs, warmup_epochs=2):
     if epoch < warmup_epochs:
         lr = initial_lr * (epoch + 1) / warmup_epochs
@@ -190,7 +177,6 @@ def cosine_decay_with_warmup(epoch, initial_lr, total_epochs, warmup_epochs=2):
         lr = initial_lr * decay
     return float(lr)
 
-# Build MobileNetV2 with enhanced augmentation and regularization
 def build_mobilenetv2(input_shape=(224, 224, 3), weights='imagenet'):
     inputs = tf.keras.Input(shape=input_shape)
     x = tf.keras.layers.RandomFlip("horizontal_and_vertical")(inputs)
@@ -215,14 +201,12 @@ def build_mobilenetv2(input_shape=(224, 224, 3), weights='imagenet'):
     model = Model(inputs=inputs, outputs=predictions)
     return model
 
-# Load and configure
 base_model = build_mobilenetv2()
 for layer in base_model.layers[:-30]:
     layer.trainable = False
 for layer in base_model.layers[-30:]:
     layer.trainable = True
 
-# Compile with quantization-aware training
 base_model = tf.keras.models.clone_model(
     base_model,
     clone_function=lambda layer: layer if not isinstance(layer, tf.keras.layers.Dropout) else tf.keras.layers.Dropout(layer.rate, noise_shape=layer.noise_shape)
@@ -234,10 +218,8 @@ base_model.compile(
     metrics=['accuracy', precision_metric, recall_metric, f1_score]
 )
 
-# Class weights
 class_weights = {0: 1.0, 1: 5.0}
 
-# Train
 steps_per_epoch = len(train_images) // BATCH_SIZE
 val_steps = len(val_images) // BATCH_SIZE
 
@@ -258,7 +240,6 @@ history = base_model.fit(
     verbose=1
 )
 
-# Fine-tune
 for layer in base_model.layers[-50:]:
     layer.trainable = True
 
@@ -286,11 +267,8 @@ history_fine = base_model.fit(
     ],
     verbose=1
 )
-
-# Save final model
 base_model.save('mobilenetv2_tuned_final.keras')
 
-# Evaluate with threshold tuning
 logger.info("Evaluating model with different thresholds...")
 predictions = base_model.predict(val_images, batch_size=BATCH_SIZE, verbose=1)
 thresholds = [0.1, 0.2, 0.3, 0.4, 0.5]
@@ -317,8 +295,6 @@ for thresh in thresholds:
     logger.info(f"False Negatives: {false_negatives}")
     logger.info(f"True Negatives: {true_negatives}")
     logger.info("---")
-
-# Improved defect detection with saliency maps and fallback
 def compute_saliency_map(model, image):
     image_tensor = tf.convert_to_tensor(image, dtype=tf.float32)
     image_tensor = tf.expand_dims(image_tensor, axis=0)
@@ -360,27 +336,22 @@ def detect_defect_region(image, model):
     if img_array.shape[-1] != 3:
         img_array = np.stack([img_array] * 3, axis=-1)
     
-    # Compute saliency map
     saliency = compute_saliency_map(model, image)
     
-    # Save saliency map for debugging
     os.makedirs("saliency_maps", exist_ok=True)
     saliency_path = f"saliency_maps/saliency_{np.random.randint(10000)}.png"
     plt.imsave(saliency_path, saliency, cmap='jet')
     logger.info(f"Saved saliency map to {saliency_path}")
     
-    # Use Otsu's method for thresholding
     saliency_uint8 = (saliency * 255).astype(np.uint8)
     _, thresh = cv2.threshold(saliency_uint8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     
-    # Find contours
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     if not contours:
         logger.warning("No defect regions detected in saliency map, falling back to intensity-based detection")
         return fallback_defect_detection(image)
     
-    # Get the largest contour
     largest_contour = max(contours, key=cv2.contourArea)
     if cv2.contourArea(largest_contour) < 50:  # Reduced threshold
         logger.warning("Defect region too small, falling back to intensity-based detection")
@@ -414,7 +385,6 @@ def visualize_defective_images(val_df, val_images, val_labels, predictions, mode
         img_normalized = tf.keras.applications.mobilenet_v2.preprocess_input(img_array.copy())
         img_display = img_array.astype(np.uint8)
         
-        # Detect defect region using saliency
         bbox = detect_defect_region(img_normalized, model)
         if bbox:
             x1, y1, x2, y2 = bbox
@@ -434,12 +404,10 @@ def visualize_defective_images(val_df, val_images, val_labels, predictions, mode
         cv2.imwrite(save_path, cv2.cvtColor(img_display, cv2.COLOR_RGB2BGR))
         logger.info(f"Saved defective image to {save_path}")
 
-# Run visualization for both datasets
 logger.info("Visualizing defective images...")
 visualize_defective_images(val_df_sampled, val_images, val_labels, predictions, base_model, 'DAGM', threshold=0.3)
 visualize_defective_images(val_df_sampled, val_images, val_labels, predictions, base_model, 'MVTec', threshold=0.3)
 
-# Convert to TFLite with quantization-aware training
 def representative_dataset():
     for i in range(min(50, len(train_images) // BATCH_SIZE)):
         batch_x = train_images[i*BATCH_SIZE:(i+1)*BATCH_SIZE]
