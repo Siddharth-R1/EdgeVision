@@ -16,11 +16,10 @@ Deep learning pipeline for industrial surface defect detection using TensorFlow 
 ## Datasets
 
 **DAGM dataset (DAGM 2007 Classification Benchmark)**
-- [Download here (Kaggle)](https://www.kaggle.com/datasets/pcbrevigltd/dagm-2007-classification-benchmark)  
-- [Original competition page](https://hci.iwr.uni-heidelberg.de/content/daimler-dataset-industrial-optical-inspection)
+- [Download here (Kaggle)](https://www.kaggle.com/datasets/mhskjelvareid/dagm-2007-competition-dataset-optical-inspection)  
 
 **MVTec Anomaly Detection dataset**
-- [Download here](https://www.mvtec.com/company/research/datasets/mvtec-ad)
+- [Download here](https://www.kaggle.com/datasets/ipythonx/mvtec-ad)
 
 ---
 
