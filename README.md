@@ -77,9 +77,7 @@ This project exemplifies a **production-grade AI pipeline** for real-world defec
 
 | Original Image | Saliency Map | Localized Defect |
 |---|---|---|
-| ![Sample Input](images/output1.png) | ![Saliency Map](images/output2.png) | ![Defect Detection](images/output3.png) |
-
-*(Add your actual output images under `/images` folder for these visuals.)*
+| (Images/Output1.png) | (Images/Output2.png) | (Images/Output3.png) |
 
 ---
 
