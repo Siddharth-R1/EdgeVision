@@ -1,4 +1,4 @@
-# 🦾 EdgeVision – Advanced Defect Detection with MobileNetV2, DAGM, and MVTec
+# 📷EdgeVision – Advanced Defect Detection with MobileNetV2, DAGM, and MVTec
 
 > **Author:** Siddharth Ramachandran  
 > **Domain:** Industrial Computer Vision • AI/ML • Model Optimization for Edge Devices
